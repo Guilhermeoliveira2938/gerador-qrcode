@@ -1,0 +1,48 @@
+name: Build Windows
+
+on:
+  # roda ao enviar código para a branch main
+  push:
+    branches: [main]
+    # e também quando você criar uma tag de versão, como v1.0
+    tags: ["v*"]
+  # permite rodar na mão pela aba Actions
+  workflow_dispatch:
+
+# precisa de permissão para anexar o .exe na Release
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o Python
+        uses: actions/setup-python@v5
+        with:
+          # 3.12 é estável com Tk 8.6 e PyInstaller
+          python-version: "3.12"
+
+      - name: Instalar as dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Gerar o .exe
+        run: pyinstaller --onefile --windowed --name "Gerador QR Code" app.py
+
+      - name: Publicar o .exe como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gerador-QR-Code-Windows
+          path: dist/Gerador QR Code.exe
+
+      - name: Anexar o .exe na Release (só em tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Gerador QR Code.exe
